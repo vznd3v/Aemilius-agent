@@ -1,0 +1,24 @@
+[project]
+name = "meshoss"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "vzn.d3v", email = "emiliendaix@hotmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+meshoss = "agent.main:main"
+
+[build-system]
+# On remplace uv_build par maturin pour compiler le Rust
+requires = ["maturin>=1.5,<2.0"]
+build-backend = "maturin"
+
+[tool.maturin]
+# Indique à maturin que la racine des dossiers Python est 'src'
+python-source = "src"
+# Le module Rust compilé sera injecté directement dans le dossier 'agent'
+module-name = "agent._core"
