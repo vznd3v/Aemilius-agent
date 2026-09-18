@@ -7,7 +7,14 @@ authors = [
     { name = "vzn.d3v", email = "emiliendaix@hotmail.com" }
 ]
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "dotenv>=0.9.9",
+    "ollama>=0.6.2",
+    "openai>=3.14.1",
+    "prompt-toolkit>=3.0.53",
+    "pydantic>=2.13.5",
+    "rich>=15.0.0",
+]
 
 [project.scripts]
 meshoss = "agent.main:main"
@@ -22,3 +29,11 @@ build-backend = "maturin"
 python-source = "src"
 # Le module Rust compilé sera injecté directement dans le dossier 'agent'
 module-name = "agent._core"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.16.8",
+]
+
+[tool.ruff.lint]
+ignore=["N999"]
