@@ -8,6 +8,17 @@ fn saluer(nom: String) -> PyResult<String> {
     
 }
 
+#[pyfunction]
+fn indexer(path: String) -> PyResult<()>{  
+
+
+    
+    Ok(())
+}
+
+
+
+
 // 2. On crée le module Python (le nom doit être EXACTEMENT le même que dans Cargo.toml)
 #[pymodule]
 fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {

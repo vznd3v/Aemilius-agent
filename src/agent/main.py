@@ -1,7 +1,8 @@
-from agent._core import saluer
+from .cli import run_cli
+
 
 def main() -> None:
-    print("hello from python")
-    print(saluer("emilien"))
+   run_cli()
+    
 
-# test comment for the main branch
+

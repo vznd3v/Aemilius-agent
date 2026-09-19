@@ -1,5 +1,5 @@
 [package]
-name = "MeshOSS-rust" # Le nom interne de votre crate Rust
+name = "aemilius-agent-rust" # Le nom interne de votre crate Rust
 version = "0.1.0"
 edition = "2021"
 
