@@ -89,7 +89,7 @@ Official contributing guidelines, pull request templates, and branching conventi
 
 If you would like to get involved early, share ideas, or collaborate, reach out directly on Discord: **`vzn.d3v`**.
 
-See [collaborates.md](collaborates.md) for more details.
+See [contributing.md](contributing.md) for more details.
 
 ---
 
