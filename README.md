@@ -1,13 +1,13 @@
-# ▦ MeshOSS
+# ▦ Aemilius Agent
 
 > **Understand external codebases quickly, simply, and effortlessly.**
 
-[![Version](https://img.shields.io/badge/version-pre--alpha_v0.0.1-yellow.svg)](https://github.com/vznd3v/MeshOSS)
+[![Version](https://img.shields.io/badge/version-pre--alpha_v0.0.1-yellow.svg)](https://github.com/vznd3v/Aemilius-agent)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Rust](https://img.shields.io/badge/rust-2021_edition-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-**MeshOSS** is a lightweight developer assistant designed to help you onboard into and explore unfamiliar codebases—whether it is a trending open-source repository on GitHub or an internal codebase at a new company.
+**Aemilius Agent** is a lightweight developer assistant designed to help you onboard into and explore unfamiliar codebases—whether it is a trending open-source repository on GitHub or an internal codebase at a new company.
 
 It uses Python for agentic reasoning and LLM workflows, coupled with direct command-execution tools for flexible file and directory inspection.
 
@@ -27,7 +27,7 @@ It uses Python for agentic reasoning and LLM workflows, coupled with direct comm
 ## 🏗️ Architecture Overview
 
 ```
-MeshOSS/
+Aemilius-agent/
 ├── src/
 │   ├── rust/               # Legacy / experimental Rust module (obsolete, replaced by tools)
 │   │   ├── Cargo.toml
@@ -54,8 +54,8 @@ MeshOSS/
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/vznd3v/MeshOSS.git
-   cd MeshOSS
+   git clone https://github.com/vznd3v/Aemilius-agent.git
+   cd Aemilius-agent
    ```
 
 2. **Sync dependencies and compile the Rust core:**
@@ -66,7 +66,7 @@ MeshOSS/
 
 3. **Launch the CLI:**
    ```bash
-   uv run meshoss
+   uv run aemilius-agent
    ```
 
 ---

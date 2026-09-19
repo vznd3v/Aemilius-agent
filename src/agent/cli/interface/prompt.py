@@ -9,7 +9,7 @@ from prompt_toolkit.styles import Style
 class PromptArea:
     """Interactive prompting component powered by prompt-toolkit."""
 
-    def __init__(self, prompt_symbol: str = "MeshOSS > ") -> None:
+    def __init__(self, prompt_symbol: str = "Aemilius > ") -> None:
         self.prompt_symbol = prompt_symbol
         self.session: PromptSession[str] = PromptSession(
             history=InMemoryHistory(),
@@ -31,7 +31,7 @@ class PromptArea:
             return None
 
 
-def prompt_user(prompt_text: str = "MeshOSS > ") -> str | None:
+def prompt_user(prompt_text: str = "Aemilius > ") -> str | None:
     """Convenience helper to ask for a single input line."""
     session: PromptSession[str] = PromptSession()
     try:

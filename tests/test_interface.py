@@ -1,4 +1,4 @@
-"""Tests for MeshOSS CLI interface components."""
+"""Tests for Aemilius Agent CLI interface components."""
 
 import unittest
 
@@ -20,7 +20,7 @@ class TestInterface(unittest.TestCase):
         output = console.export_text()
 
         self.assertIn("\u25a6", output)
-        self.assertIn("MeshOSS", output)
+        self.assertIn("Aemilius Agent", output)
         self.assertIn("pre-alpha v0.0.1", output)
 
     def test_message_history(self):

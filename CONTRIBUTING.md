@@ -1,6 +1,6 @@
-# Collaborating on MeshOSS
+# Collaborating on Aemilius Agent
 
-Thank you for your interest in **MeshOSS**!
+Thank you for your interest in **Aemilius Agent**!
 
 ## 🚧 Current Status: Pre-Alpha (v0.0.1)
 
@@ -25,8 +25,8 @@ If you want to run and experiment with the project locally:
 
 ```bash
 # Clone the repository
-git clone https://github.com/vznd3v/MeshOSS.git
-cd MeshOSS
+git clone https://github.com/vznd3v/Aemilius-agent.git
+cd Aemilius-agent
 
 # Install dependencies using uv
 uv sync
@@ -35,7 +35,7 @@ uv sync
 uv run maturin develop
 
 # Run the CLI
-uv run meshoss
+uv run aemilius-agent
 
 # Run linter & tests
 uv run ruff check .

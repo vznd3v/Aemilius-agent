@@ -1,4 +1,4 @@
-"""CLI interface module for MeshOSS."""
+"""CLI interface module for Aemilius Agent."""
 
 from .messages import Message, MessageHistory
 from .panel import get_panel, render_panel

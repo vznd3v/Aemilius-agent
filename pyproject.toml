@@ -1,5 +1,5 @@
 [project]
-name = "meshoss"
+name = "aemilius-agent"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -17,7 +17,7 @@ dependencies = [
 ]
 
 [project.scripts]
-meshoss = "agent.main:main"
+aemilius-agent = "agent.main:main"
 
 [build-system]
 # On remplace uv_build par maturin pour compiler le Rust
