@@ -75,7 +75,7 @@ Aemilius-agent/
 
 - [x] Basic CLI interface with session history and prompt-toolkit integration.
 - [x] File inspection tools using command execution (replacing the obsolete Rust indexer).
-- [ ] Multi-provider LLM gateway (Ollama, OpenAI, and custom OpenAI-compatible endpoints).
+- [x] Multi-provider LLM gateway (Ollama, OpenAI, and custom OpenAI-compatible endpoints).
 - [ ] Tool calling engine for autonomous codebase navigation.
 - [ ] Project architecture and dependency chart generation.
 
