@@ -7,6 +7,12 @@ from rich.console import Console
 from agent.cli.interface.messages import MessageHistory
 from agent.cli.interface.panel import get_panel, render_panel
 from agent.cli.interface.prompt import PromptArea
+from agent.cli.interface.thinking import (
+    DEFAULT_MAX_LENGTH,
+    ThinkingMode,
+    ThinkingStreamer,
+    render_thinking,
+)
 
 
 class TestInterface(unittest.TestCase):
@@ -53,6 +59,69 @@ class TestInterface(unittest.TestCase):
         prompt_area = PromptArea(prompt_symbol="Test > ")
         self.assertEqual(prompt_area.prompt_symbol, "Test > ")
         self.assertIsNotNone(prompt_area.session)
+
+    def test_render_thinking_full(self):
+        """Verify FULL mode prints the whole thinking content."""
+        console = Console(record=True, width=100)
+        render_thinking(console, "deep thought", ThinkingMode.FULL)
+        output = console.export_text()
+        self.assertIn("Thinking: deep thought", output)
+
+    def test_render_thinking_short_truncates(self):
+        """Verify SHORT mode truncates long thinking and suggests /thinking full."""
+        console = Console(record=True, width=100)
+        long_content = "x" * (DEFAULT_MAX_LENGTH + 50)
+        render_thinking(console, long_content, ThinkingMode.SHORT)
+        output = console.export_text()
+        self.assertIn("...", output)
+        self.assertIn("/thinking full", output)
+
+    def test_render_thinking_short_fits(self):
+        """Verify SHORT mode keeps short thinking intact."""
+        console = Console(record=True, width=100)
+        render_thinking(console, "short", ThinkingMode.SHORT)
+        output = console.export_text()
+        self.assertIn("Thinking: short", output)
+        self.assertNotIn("/thinking full", output)
+
+    def test_render_thinking_off(self):
+        """Verify OFF mode renders nothing."""
+        console = Console(record=True, width=100)
+        render_thinking(console, "hidden", ThinkingMode.OFF)
+        self.assertEqual(console.export_text(), "")
+
+    def test_thinking_mode_values(self):
+        """Verify ThinkingMode enum values."""
+        self.assertEqual([mode.value for mode in ThinkingMode], ["short", "full", "off"])
+
+    def test_thinking_streamer_separates_sections(self):
+        """Verify the streamer only labels thinking, leaving content display separate."""
+        console = Console(record=True, width=100)
+        streamer = ThinkingStreamer(console, mode=ThinkingMode.FULL)
+        streamer.feed("Okay")
+        streamer.feed(" let me think.")
+        streamer.finish()
+        output = console.export_text()
+        self.assertTrue(output.startswith("Thinking: Okay let me think."))
+        self.assertIn("\n", output)
+
+    def test_thinking_streamer_off_prints_nothing(self):
+        """Verify OFF mode produces no output at all."""
+        console = Console(record=True, width=100)
+        streamer = ThinkingStreamer(console, mode=ThinkingMode.OFF)
+        streamer.feed("hidden")
+        streamer.finish()
+        self.assertEqual(console.export_text(), "")
+
+    def test_thinking_streamer_short_truncates(self):
+        """Verify SHORT mode truncates and adds the expansion hint on finish."""
+        console = Console(record=True, width=100)
+        streamer = ThinkingStreamer(console, mode=ThinkingMode.SHORT, max_length=20)
+        streamer.feed("x" * 40)
+        streamer.finish()
+        output = console.export_text()
+        self.assertTrue(output.startswith("Thinking: xxxxxxxxxxxxxxxxxxxx"))
+        self.assertIn("/thinking full", output)
 
 
 if __name__ == "__main__":
