@@ -1,5 +1,9 @@
 # ▦ Aemilius Agent
 
+![banner](./Gemini_Generated_Image_gj2u77gj2u77gj2u.jpeg)
+
+
+
 > **Understand external codebases quickly, simply, and effortlessly.**
 
 [![Version](https://img.shields.io/badge/version-pre--alpha_v0.0.1-yellow.svg)](https://github.com/vznd3v/Aemilius-agent)
