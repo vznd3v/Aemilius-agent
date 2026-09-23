@@ -2,105 +2,126 @@
    <img src="./Design%20sans%20titre%20(3).png" alt="Logo Aemilius Agent" width="72" style="border-radius: 10px;">
 </div>
 
-# 🏛️ Aemilius Agent
+# Aemilius Agent
 
 ![banner](./Gemini_Generated_Image_gj2u77gj2u77gj2u.jpeg)
 
-
-
-> **Understand external codebases quickly, simply, and effortlessly.**
+> **Explore unfamiliar codebases through a focused terminal assistant.**
 
 [![Version](https://img.shields.io/badge/version-pre--alpha_v0.0.1-yellow.svg)](https://github.com/vznd3v/Aemilius-agent)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
-[![Rust](https://img.shields.io/badge/rust-2021_edition-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-**Aemilius Agent** is a lightweight developer assistant designed to help you onboard into and explore unfamiliar codebases—whether it is a trending open-source repository on GitHub or an internal codebase at a new company.
+**Aemilius Agent** is a Python terminal assistant for exploring unfamiliar codebases. It connects an LLM provider to a small set of filesystem tools and presents the result through a Rich-based interactive CLI.
 
-It uses Python for agentic reasoning and LLM workflows, coupled with direct command-execution tools for flexible file and directory inspection.
+## Features
 
----
+- **Codebase exploration**: list directories and read file contents through agent tools.
+- **Multi-provider gateway**: use local Ollama models or OpenAI-compatible APIs such as OpenRouter.
+- **Streaming responses**: stream text, reasoning, tool results, and provider errors through one gateway interface.
+- **Tool calling**: execute `listfiles`, `readfile`, and `quit` from model-generated tool calls.
+- **Terminal Markdown**: render agent responses with Rich, including syntax-highlighted code blocks.
+- **Token statistics**: show provider usage when available and a clearly marked estimate otherwise.
+- **File references**: autocomplete files and directories after typing `@` in the prompt.
+- **Tested core**: unit tests cover the gateway, tools, streaming, Markdown rendering, and completion.
 
-## ✨ Features
+## Architecture
 
-- 🛠️ **Command-Driven Exploration**: Real-time filesystem and directory inspection powered by dedicated command tools (replacing the earlier obsolete Rust indexing prototype).
-- 🖥️ **Minimalist & Beautiful CLI**: Built with `rich` and `prompt-toolkit`—clean, responsive, and lightweight without terminal bloat.
-- 💬 **Interactive Agent Chat**: Conversational AI context (powered by Ollama with local models such as `llama3.2:1b`, and OpenAI/custom endpoints soon).
-- 🧭 **Native Agent Inspection**: Built-in tools for listing files, exploring directory structures, and gathering codebase context.
-- 🗺️ **Architecture Mapping *(Coming Soon)***: Automatic dependency graphing and visual architecture charts.
-- 🔌 **Zero Config Friction**: Clone, run, and explore immediately.
-
----
-
-## 🏗️ Architecture Overview
-
-```
+```text
 Aemilius-agent/
-├── src/
-│   ├── rust/               # Legacy / experimental Rust module (obsolete, replaced by tools)
-│   │   ├── Cargo.toml
-│   │   └── lib.rs
-│   └── agent/              # Python CLI & Agent Core
-│       ├── cli/            # Rich CLI interface (Panel, Prompt, Messages history)
-│       └── tools/          # Command-based agent tools (file discovery, inspection)
-├── tests/                  # Unit and integration test suite
-└── pyproject.toml          # Project configuration (uv + maturin backend)
+├── src/agent/
+│   ├── cli/                # Terminal interface, Markdown renderer, prompt completion
+│   ├── config/             # Provider configuration
+│   ├── gateway/            # Provider calls, streaming, tool-call normalization
+│   ├── tools/              # Filesystem and session tools
+│   └── main.py             # CLI entry point
+├── tests/                  # Unit and integration tests
+├── pyproject.toml          # Python project and command configuration
+└── README.md
 ```
 
----
+The main boundaries are:
 
-## 🚀 Getting Started
+```text
+CLI -> Gateway -> LLM provider
+              -> Tools
+```
 
-### Prerequisites
+The CLI owns presentation. The gateway owns provider communication, streaming, tool-call execution, errors, and usage extraction. Tools remain provider-independent.
 
-- **Python**: `>= 3.11`
-- **Rust toolchain**: `cargo` & `rustc` (optional if using pre-compiled wheels, required for development)
-- **uv** (recommended package manager) or standard `pip`
-- **Ollama**: running locally with your model of choice (e.g., `ollama run llama3.2:1b`)
+## Getting Started
 
-### Installation & Run
+### Requirements
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/vznd3v/Aemilius-agent.git
-   cd Aemilius-agent
-   ```
+- Python `3.11` or newer;
+- `uv`, recommended for dependency management;
+- Ollama, only when using the local provider;
+- an OpenRouter or other OpenAI-compatible API key, only when using an external provider.
 
-2. **Sync dependencies and compile the Rust core:**
-   ```bash
-   uv sync
-   uv run maturin develop
-   ```
+### Installation
 
-3. **Launch the CLI:**
-   ```bash
-   uv run aemilius-agent
-   ```
+```bash
+git clone https://github.com/vznd3v/Aemilius-agent.git
+cd Aemilius-agent
+uv sync
+```
 
----
+The package uses Maturin as its build backend because the repository still contains an experimental Rust module. The current CLI, gateway, and tools are implemented in Python.
 
-## 🗺️ Roadmap
+### Provider configuration
 
-- [x] Basic CLI interface with session history and prompt-toolkit integration.
-- [x] File inspection tools using command execution (replacing the obsolete Rust indexer).
-- [x] Multi-provider LLM gateway (Ollama, OpenAI, and custom OpenAI-compatible endpoints).
-- [ ] Tool calling engine for autonomous codebase navigation.
-- [ ] Project architecture and dependency chart generation.
+The default provider and model are configured in `src/agent/config/config.json`.
 
----
+For an external OpenAI-compatible provider, create a local `.env` file:
 
-## 🤝 Contributing & Collaborating
+```dotenv
+EXTERNAL_API_KEY=replace_with_your_api_key
+```
 
-We are currently in active **pre-alpha (v0.0.1)**. 
+`OPENAI_API_KEY` is also supported. `.env` is ignored by Git and must never be committed.
 
-Official contributing guidelines, pull request templates, and branching conventions will be published once **v0.1** is released. 
+For Ollama, install the selected model and start the service:
 
-If you would like to get involved early, share ideas, or collaborate, reach out directly on Discord: **`vzn.d3v`**.
+```bash
+ollama pull qwen3:4b
+ollama serve
+```
 
-See [contributing.md](contributing.md) for more details.
+Start the CLI with:
 
----
+```bash
+uv run aemilius-agent
+```
 
-## 📄 License
+### Examples
+
+```text
+Aemilius > list the files in /path/to/project
+Aemilius > read src/agent/main.py
+Aemilius > what is inside @src/agent/gateway/gateway.py
+```
+
+Type `@` followed by a path fragment to autocomplete files and directories from the current working directory.
+
+## Built-in tools
+
+- `listfiles`: list entries in a directory.
+- `readfile`: read and return the complete content of a file.
+- `quit`: stop the interactive session.
+
+Tool calls are exposed when the request concerns files or directories. The gateway normalizes streamed tool-call fragments from OpenAI-compatible providers before executing them.
+
+## Roadmap
+
+- [ ] Add architecture and dependency graph tools.
+- [ ] Add flowchart generation and a graphical flowchart view.
+- [ ] Add a CLI splash screen.
+- [ ] Add a `/provider` command for changing providers during a session.
+
+## Contributing
+
+The project is in active **pre-alpha (`v0.0.1`)**. Bug reports, provider compatibility notes, tests, and focused improvements are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow.
+
+## License
 
 Distributed under the MIT License. See `LICENSE` for more information.
