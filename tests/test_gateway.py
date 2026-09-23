@@ -26,6 +26,7 @@ def _ollama_message(content="", tool_calls=None, thinking=""):
 class TestGateway(unittest.TestCase):
     def setUp(self):
         self.gw = Gateway(tools=get_tools())
+        self.gw.default_provider = "local_ollama"
         self.gw.ollama_model = "test-model"
 
     @patch.object(gateway_module.ollama, "chat", return_value=_ollama_message("Hello there"))
@@ -56,6 +57,9 @@ class TestGateway(unittest.TestCase):
         self.assertEqual(kwargs["messages"][0]["role"], "system")
         self.assertEqual(kwargs["messages"][0]["content"], SYSTEM_PROMPT)
 
+    def test_system_prompt_describes_readfile(self):
+        self.assertIn("readfile reads and returns the content", SYSTEM_PROMPT)
+
     @patch.object(
         gateway_module.ollama,
         "chat",
@@ -72,6 +76,15 @@ class TestGateway(unittest.TestCase):
     )
     def test_tools_attached_when_keyword_present(self, mock_chat):
         self.gw.generate_text("liste les fichiers du dossier /tmp")
+        self.assertIn("tools", mock_chat.call_args.kwargs)
+
+    @patch.object(
+        gateway_module.ollama,
+        "chat",
+        return_value=_ollama_message("Ok"),
+    )
+    def test_tools_attached_when_prompt_mentions_file_name(self, mock_chat):
+        self.gw.generate_text("et dans chatbot.py y'a quoi")
         self.assertIn("tools", mock_chat.call_args.kwargs)
 
     @patch.object(
@@ -181,6 +194,7 @@ class TestGateway(unittest.TestCase):
 class TestStream(unittest.TestCase):
     def setUp(self):
         self.gw = Gateway(tools=get_tools())
+        self.gw.default_provider = "local_ollama"
         self.gw.ollama_model = "test-model"
 
     @patch.object(
@@ -212,6 +226,70 @@ class TestStream(unittest.TestCase):
             StreamChunk("thinking", "I think"),
             StreamChunk("content", "Answer"),
         ])
+
+    def test_openai_stream_reassembles_tool_call_fragments(self):
+        chunks = [
+            SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(
+                content=None,
+                thinking=None,
+                tool_calls=[SimpleNamespace(
+                    index=0,
+                    id="call_1",
+                    function=SimpleNamespace(name="readfile", arguments=""),
+                )],
+            ))]),
+            SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(
+                content=None,
+                thinking=None,
+                tool_calls=[SimpleNamespace(
+                    index=0,
+                    id=None,
+                    function=SimpleNamespace(name=None, arguments='{"path":'),
+                )],
+            ))]),
+            SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(
+                content=None,
+                thinking=None,
+                tool_calls=[SimpleNamespace(
+                    index=0,
+                    id=None,
+                    function=SimpleNamespace(name=None, arguments='"/tmp/chatbot.py"}'),
+                )],
+            ))]),
+        ]
+        fake_client = SimpleNamespace(
+            chat=SimpleNamespace(
+                completions=SimpleNamespace(create=lambda **kwargs: chunks),
+            ),
+        )
+        self.gw.default_provider = "external_api_openai_compatible"
+        self.gw.openai_client = fake_client
+
+        stream = self.gw._stream_openai([], None)
+        try:
+            while True:
+                next(stream)
+        except StopIteration as result:
+            _content, _thinking, tool_calls = result.value
+
+        self.assertEqual(tool_calls, [{
+            "id": "call_1",
+            "name": "readfile",
+            "arguments": {"path": "/tmp/chatbot.py"},
+        }])
+
+    def test_stream_provider_rate_limit_is_returned_as_error_chunk(self):
+        error = RuntimeError("upstream provider is overloaded")
+        error.status_code = 429
+        self.gw.default_provider = "local_ollama"
+        self.gw._stream_ollama = lambda messages, tools: (_ for _ in ()).throw(error)
+
+        chunks = list(self.gw.stream_text("Hi"))
+
+        self.assertEqual(chunks, [StreamChunk(
+            "error",
+            "Le fournisseur IA est temporairement saturé (429). Réessayez dans quelques secondes.",
+        )])
 
     def test_stream_tool_loop(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -1,30 +1,40 @@
 import json
 import os
+import re
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import ollama
+from dotenv import load_dotenv
 from openai import OpenAI
 
 from ..tools import QuitRequested, execute_tool, to_schemas
 
 config_path = Path(__file__).resolve().parent.parent / "config" / "config.json"
+dotenv_path = Path(__file__).resolve().parents[3] / ".env"
+load_dotenv(dotenv_path=dotenv_path)
 
 SYSTEM_PROMPT = (
-    "You are Aemilius, a concise and helpful assistant. You have access to tools "
-    "such as listfiles, but you must only use them when the user explicitly asks "
-    "to list or inspect files, directories or their contents. If the user greets "
+    "You are Aemilius, a concise and helpful assistant. You have access to these tools: "
+    "listfiles lists the entries in a directory, readfile reads and returns the content "
+    "of a file, and quit ends the session. Use readfile when the user asks to read, "
+    "display, show, or inspect a file. Use listfiles when the user asks to list a "
+    "directory. You must only use tools when the user explicitly asks to inspect files, "
+    "directories or their contents. If the user greets "
     "you (e.g. 'bonjour', 'hi', 'hello') or asks a general question, reply "
     "directly without calling any tool."
     "if the user asks to quit the agent, use the quit tool to quit the agent. or if he say a word like goodbye"
+    "if your have an error during a tools use or you can't use a tool or you don't have the right permissions to access to a file , you must answer the user directly and tell them about the error and not call any tool. "
 )
 
 TOOL_TRIGGER_KEYWORDS = (
     "list", "ls ", "dir", "directory", "folder", "show", "files", "file",
     "fichier", "dossier", "r\u00e9pertoire", "repertoire", "contenu", "arborescence",
+    "read", "cat", "type", "open", "view", "inspect", "explore", "search",
 )
+FILE_REFERENCE_PATTERN = re.compile(r"(?:^|[\s/'\"])[^\s/'\"]+\.[a-zA-Z0-9]+(?:$|[\s'\"])")
 
 
 def load_config():
@@ -42,6 +52,7 @@ class ModelResponse:
 class StreamChunk:
     type: str
     text: str
+    usage: dict[str, int] | None = None
 
 
 class Gateway:
@@ -53,7 +64,8 @@ class Gateway:
         self.base_url = config["provider"]["external_api_openai_compatible"].get("base_url")
         self.tools = list[Any](tools or [])
         if self.openai_model and self.default_provider == "external_api_openai_compatible":
-            self.openai_client = OpenAI(base_url=self.base_url, api_key=os.getenv("OPENAI_API_KEY"))
+            api_key = os.getenv("EXTERNAL_API_KEY") or os.getenv("OPENAI_API_KEY")
+            self.openai_client = OpenAI(base_url=self.base_url, api_key=api_key)
 
     def generate_text(self, prompt, history=None, tools=None, max_tool_iterations=10):
         messages = self._build_messages(prompt, history)
@@ -82,12 +94,16 @@ class Gateway:
         active_tools, tool_schemas = self._resolve_tools(prompt, tools)
 
         for _ in range(max_tool_iterations):
-            if self.default_provider == "local_ollama":
-                content, _thinking, tool_calls = yield from self._stream_ollama(messages, tool_schemas)
-            elif self.default_provider == "external_api_openai_compatible":
-                content, _thinking, tool_calls = yield from self._stream_openai(messages, tool_schemas)
-            else:
-                raise ValueError(f"Unknown default provider: {self.default_provider}")
+            try:
+                if self.default_provider == "local_ollama":
+                    content, _thinking, tool_calls = yield from self._stream_ollama(messages, tool_schemas)
+                elif self.default_provider == "external_api_openai_compatible":
+                    content, _thinking, tool_calls = yield from self._stream_openai(messages, tool_schemas)
+                else:
+                    raise ValueError(f"Unknown default provider: {self.default_provider}")
+            except Exception as error:  # noqa: BLE001 - provider errors are shown in the CLI
+                yield StreamChunk("error", self._provider_error_message(error))
+                return
 
             if not tool_calls:
                 return
@@ -105,6 +121,12 @@ class Gateway:
 
         yield StreamChunk("error", "Maximum tool iterations reached.")
 
+    @staticmethod
+    def _provider_error_message(error):
+        if getattr(error, "status_code", None) == 429:
+            return "Le fournisseur IA est temporairement saturé (429). Réessayez dans quelques secondes."
+        return f"Erreur du fournisseur IA : {error}"
+
     def _build_messages(self, prompt, history=None):
         messages = [{"role": "system", "content": SYSTEM_PROMPT}]
         messages.extend(list(history or []))
@@ -121,6 +143,8 @@ class Gateway:
     def _prompt_requests_tools(self, prompt, tools=None):
         normalized = prompt.lower()
         if any(keyword in normalized for keyword in TOOL_TRIGGER_KEYWORDS):
+            return True
+        if FILE_REFERENCE_PATTERN.search(prompt):
             return True
         if tools:
             return any(tool["function"]["name"].lower() in normalized for tool in tools)
@@ -197,8 +221,12 @@ class Gateway:
         content_parts: list[str] = []
         thinking_parts: list[str] = []
         tool_calls: list[dict[str, Any]] = []
+        usage: dict[str, int] | None = None
 
         for response in ollama.chat(**kwargs):
+            response_usage = self._extract_usage(response)
+            if response_usage:
+                usage = response_usage
             message = response["message"]
             if hasattr(message, "model_dump"):
                 message = message.model_dump()
@@ -223,6 +251,8 @@ class Gateway:
                     "arguments": function.get("arguments") or {},
                 })
 
+        if usage:
+            yield StreamChunk("usage", "", usage=usage)
         return "".join(content_parts), "".join(thinking_parts), tool_calls
 
     def _stream_openai(self, messages, tool_schemas):
@@ -232,9 +262,13 @@ class Gateway:
 
         content_parts: list[str] = []
         thinking_parts: list[str] = []
-        tool_calls_by_id: dict[str, dict[str, Any]] = {}
+        tool_calls_by_index: dict[int, dict[str, Any]] = {}
+        usage: dict[str, int] | None = None
 
         for chunk in self.openai_client.chat.completions.create(**kwargs):
+            chunk_usage = self._extract_usage(chunk)
+            if chunk_usage:
+                usage = chunk_usage
             if not chunk.choices:
                 continue
             delta = chunk.choices[0].delta
@@ -250,22 +284,50 @@ class Gateway:
                 yield StreamChunk("thinking", thinking)
 
             for call in getattr(delta, "tool_calls", None) or []:
-                call_id = call.id or f"call_{uuid.uuid4().hex[:8]}"
-                entry = tool_calls_by_id.setdefault(call_id, {"id": call_id, "name": "", "arguments": ""})
-                if call.function and call.function.name:
-                    entry["name"] += call.function.name
-                if call.function and call.function.arguments:
-                    entry["arguments"] += call.function.arguments
+                call_index = getattr(call, "index", None)
+                if call_index is None:
+                    call_index = len(tool_calls_by_index)
+                entry = tool_calls_by_index.setdefault(
+                    call_index,
+                    {"id": getattr(call, "id", None) or f"call_{uuid.uuid4().hex[:8]}", "name": "", "arguments": ""},
+                )
+                function = getattr(call, "function", None)
+                name = getattr(function, "name", None) if function else None
+                arguments = getattr(function, "arguments", None) if function else None
+                if name:
+                    entry["name"] += name
+                if arguments:
+                    entry["arguments"] += arguments
 
         tool_calls: list[dict[str, Any]] = []
-        for entry in tool_calls_by_id.values():
+        for entry in tool_calls_by_index.values():
+            if not entry["name"]:
+                continue
             try:
                 arguments = json.loads(entry["arguments"]) if entry["arguments"] else {}
             except json.JSONDecodeError:
                 arguments = {}
             tool_calls.append({"id": entry["id"], "name": entry["name"], "arguments": arguments})
 
+        if usage:
+            yield StreamChunk("usage", "", usage=usage)
         return "".join(content_parts), "".join(thinking_parts), tool_calls
+
+    @staticmethod
+    def _extract_usage(response) -> dict[str, int] | None:
+        usage = response.get("usage") if isinstance(response, dict) else getattr(response, "usage", None)
+        if usage is None:
+            return None
+        if hasattr(usage, "model_dump"):
+            usage = usage.model_dump()
+        if not isinstance(usage, dict):
+            return None
+        values = {
+            key: usage[key]
+            for key in ("prompt_tokens", "completion_tokens", "total_tokens")
+            if isinstance(usage.get(key), int)
+        }
+        return values or None
 
     def _assistant_message(self, content, tool_calls):
         message = {"role": "assistant", "content": content or None}
