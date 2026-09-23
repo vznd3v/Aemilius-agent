@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 
 from agent.tools import TOOLS, QuitRequested, execute_tool, get_tools, to_schemas
+from agent.tools.readfiles import _read_file, read_file
 
 
 class TestTools(unittest.TestCase):
@@ -41,6 +42,36 @@ class TestTools(unittest.TestCase):
     def test_execute_tool_raises_on_unknown(self):
         with self.assertRaises(KeyError):
             execute_tool(get_tools(), "no_such_tool", {})
+
+    def test_read_file_returns_file_content(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            file_path = Path(tmp) / "hello.txt"
+            file_path.write_text("Hello, Aemilius!\n")
+
+            self.assertEqual(_read_file(str(file_path)), "Hello, Aemilius!\n")
+
+    def test_execute_tool_reads_file_with_spaces_in_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp) / "banthic AI" / "HiveSTA" / "code"
+            directory.mkdir(parents=True)
+            file_path = directory / "chatbot.py"
+            file_path.write_text("print('hello')\n")
+
+            output = execute_tool(get_tools(), "readfile", {"path": str(file_path)})
+
+            self.assertEqual(output, "print('hello')\n")
+
+    def test_read_file_raises_for_missing_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            file_path = Path(tmp) / "missing.txt"
+
+            with self.assertRaises(FileNotFoundError):
+                _read_file(str(file_path))
+
+    def test_read_file_has_expected_tool_schema(self):
+        self.assertEqual(read_file["function"]["name"], "readfile")
+        self.assertEqual(read_file["function"]["parameters"]["required"], ["path"])
+        self.assertIs(read_file["call"], _read_file)
 
 
 if __name__ == "__main__":

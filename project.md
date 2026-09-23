@@ -7,8 +7,13 @@
 - [x] make a gateway for using ollama or open ai with an other base url if the user want an non-local model
 - [x] test the first tool call with the model llama3.2:1b and a external api
 
+- [x] add the readfiles tools
+
+- [x] best cli  for chatting (adding a markdown engine and a stats panel, and a completer for @ a file or folder)
 
 ## what next
 
-- [ ] new tools like readfiles, generate_flowchart and more
-- [ ] best cli and potentialy GUI for chatting or display the flowchart
+- [ ] new tools like generate_flowchart and more
+- [ ] graphic ui for show the flowchart 
+- [ ] a splash for the cli
+- [ ] a command /provider for choose the default provider in the config json

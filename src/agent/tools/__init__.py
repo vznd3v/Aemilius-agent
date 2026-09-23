@@ -1,5 +1,6 @@
 from .listfiles import listfiles
 from .quit import QuitRequested, quit
+from .readfiles import read_file
 
 __all__ = [
     "TOOLS",
@@ -11,7 +12,7 @@ __all__ = [
     "to_schemas",
 ]
 
-TOOLS = [listfiles, quit]
+TOOLS = [listfiles, quit, read_file]
 
 
 def get_tools():
