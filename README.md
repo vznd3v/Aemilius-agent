@@ -1,4 +1,8 @@
-# ▦ Aemilius Agent
+<div align="right">
+   <img src="./Design%20sans%20titre%20(3).png" alt="Logo Aemilius Agent" width="72" style="border-radius: 10px;">
+</div>
+
+# 🏛️ Aemilius Agent
 
 ![banner](./Gemini_Generated_Image_gj2u77gj2u77gj2u.jpeg)
 
