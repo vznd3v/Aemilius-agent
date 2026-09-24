@@ -1,5 +1,5 @@
 {
-    "default_provider": "external_api_openai_compatible",
+    "default_provider": "local_ollama",
 
     "provider": {
         "external_api_openai_compatible":{

@@ -17,22 +17,31 @@ dotenv_path = Path(__file__).resolve().parents[3] / ".env"
 load_dotenv(dotenv_path=dotenv_path)
 
 SYSTEM_PROMPT = (
-    "You are Aemilius, a concise and helpful assistant. You have access to these tools: "
+    "You are Aemilius, a concise and evidence-driven coding agent. You have access to these tools: "
     "listfiles lists the entries in a directory, readfile reads and returns the content "
-    "of a file, and quit ends the session. Use readfile when the user asks to read, "
-    "display, show, or inspect a file. Use listfiles when the user asks to list a "
-    "directory. You must only use tools when the user explicitly asks to inspect files, "
-    "directories or their contents. If the user greets "
-    "you (e.g. 'bonjour', 'hi', 'hello') or asks a general question, reply "
-    "directly without calling any tool."
+    "of a file, where returns the current working directory, and quit ends the session. "
+    "Use readfile when the user asks to read, display, show, or inspect a file. Use "
+    "listfiles when the user asks to list a directory. When the user asks about the "
+    "current project, its architecture, functions, or how its code works, you MUST "
+    "inspect the project first: use listfiles, then readfile on the relevant files, "
+    "before explaining anything. Never claim that there is no project when the tools "
+    "can inspect the current directory. If the tools do not provide enough evidence, "
+    "say what is missing instead of guessing. Greetings and general questions may be "
+    "answered directly without tools."
     "if the user asks to quit the agent, use the quit tool to quit the agent. or if he say a word like goodbye"
     "if your have an error during a tools use or you can't use a tool or you don't have the right permissions to access to a file , you must answer the user directly and tell them about the error and not call any tool. "
+    "if the user asks to know where the agent is running, you can use the 'where' tool to get the current working directory and return it to the user. "
+    "Never invent source code, file contents, function names, tool results, or project "
+    "structure. Use only evidence returned by tools. You may show illustrative code "
+    "only when explicitly labeled as an example and not as code from the project."
 )
 
 TOOL_TRIGGER_KEYWORDS = (
     "list", "ls ", "dir", "directory", "folder", "show", "files", "file",
     "fichier", "dossier", "r\u00e9pertoire", "repertoire", "contenu", "arborescence",
     "read", "cat", "type", "open", "view", "inspect", "explore", "search",
+    "find", "look", "display", "check", "analyze", "examine", "scan", "traverse",
+    "where", "current working directory", "pwd", "present working directory", "quitter", "exit", "close", "stop", "end", "terminate"
 )
 FILE_REFERENCE_PATTERN = re.compile(r"(?:^|[\s/'\"])[^\s/'\"]+\.[a-zA-Z0-9]+(?:$|[\s'\"])")
 
@@ -53,6 +62,7 @@ class StreamChunk:
     type: str
     text: str
     usage: dict[str, int] | None = None
+    tool: str | None = None
 
 
 class Gateway:
@@ -94,6 +104,7 @@ class Gateway:
         active_tools, tool_schemas = self._resolve_tools(prompt, tools)
 
         for _ in range(max_tool_iterations):
+            yield StreamChunk("status", "Thinking")
             try:
                 if self.default_provider == "local_ollama":
                     content, _thinking, tool_calls = yield from self._stream_ollama(messages, tool_schemas)
@@ -110,13 +121,14 @@ class Gateway:
 
             messages.append(self._assistant_message(content, tool_calls))
             for call in tool_calls:
+                yield StreamChunk("tool_call", "", tool=call["name"])
                 try:
                     output = execute_tool(active_tools, call["name"], call["arguments"])
                 except QuitRequested:
                     raise
                 except Exception as e:  # noqa: BLE001 - tool failures are fed back to the model
                     output = f"Tool '{call['name']}' failed: {e}"
-                yield StreamChunk("tool_result", output)
+                yield StreamChunk("tool_result", output, tool=call["name"])
                 messages.append(self._tool_result_message(call, output))
 
         yield StreamChunk("error", "Maximum tool iterations reached.")
@@ -135,8 +147,6 @@ class Gateway:
 
     def _resolve_tools(self, prompt, tools=None):
         active_tools = self.tools if tools is None else list(tools)
-        if active_tools and not self._prompt_requests_tools(prompt, active_tools):
-            active_tools = []
         tool_schemas = to_schemas(active_tools) if active_tools else None
         return active_tools, tool_schemas
 

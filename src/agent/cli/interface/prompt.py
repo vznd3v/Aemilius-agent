@@ -53,7 +53,7 @@ class FileReferenceCompleter(Completer):
 class PromptArea:
     """Interactive prompting component powered by prompt-toolkit."""
 
-    def __init__(self, prompt_symbol: str = "Aemilius > ") -> None:
+    def __init__(self, prompt_symbol: str = "> ") -> None:
         self.prompt_symbol = prompt_symbol
         self.session: PromptSession[str] = PromptSession(
             history=InMemoryHistory(),
@@ -77,7 +77,7 @@ class PromptArea:
             return None
 
 
-def prompt_user(prompt_text: str = "Aemilius > ") -> str | None:
+def prompt_user(prompt_text: str = "> ") -> str | None:
     """Convenience helper to ask for a single input line."""
     session: PromptSession[str] = PromptSession(
         completer=FileReferenceCompleter(),
