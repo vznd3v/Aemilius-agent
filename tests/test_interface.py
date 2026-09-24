@@ -5,7 +5,7 @@ import unittest
 from rich.console import Console
 
 from agent.cli.interface.messages import MessageHistory
-from agent.cli.interface.panel import get_panel, render_panel
+from agent.cli.interface.panel import get_footer, get_panel, get_separator, render_panel
 from agent.cli.interface.prompt import PromptArea
 from agent.cli.interface.thinking import (
     DEFAULT_MAX_LENGTH,
@@ -17,7 +17,7 @@ from agent.cli.interface.thinking import (
 
 class TestInterface(unittest.TestCase):
     def test_panel_content(self):
-        """Verify that the panel contains the required character and version info."""
+        """Verify that the panel contains its identity and status information."""
         panel = get_panel()
         self.assertIsNotNone(panel)
 
@@ -25,9 +25,26 @@ class TestInterface(unittest.TestCase):
         render_panel(console)
         output = console.export_text()
 
-        self.assertIn("\u25a6", output)
         self.assertIn("Aemilius Agent", output)
-        self.assertIn("pre-alpha v0.0.1", output)
+        self.assertNotIn("emiliendaix@gmail.com", output)
+        self.assertNotIn("Starter Quota", output)
+        self.assertNotIn("High", output)
+
+    def test_separator_has_terminal_rule_character(self):
+        self.assertIn("─", get_separator(20).plain)
+
+    def test_panel_displays_usage(self):
+        """Verify that the latest token usage is displayed in the base panel."""
+        console = Console(record=True, width=100)
+        console.print(get_footer(usage={
+            "prompt_tokens": 12,
+            "completion_tokens": 8,
+            "total_tokens": 20,
+        }))
+        output = console.export_text()
+        self.assertIn("Tokens 20", output)
+        self.assertIn("in", output)
+        self.assertIn("out 8", output)
 
     def test_message_history(self):
         """Verify message history operations (add, clear, get)."""

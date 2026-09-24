@@ -1,6 +1,7 @@
 from .listfiles import listfiles
 from .quit import QuitRequested, quit
 from .readfiles import read_file
+from .where import where
 
 __all__ = [
     "TOOLS",
@@ -12,7 +13,7 @@ __all__ = [
     "to_schemas",
 ]
 
-TOOLS = [listfiles, quit, read_file]
+TOOLS = [listfiles, quit, read_file, where]
 
 
 def get_tools():

@@ -1,7 +1,7 @@
 """CLI interface module for Aemilius Agent."""
 
 from .messages import Message, MessageHistory
-from .panel import get_panel, render_panel
+from .panel import get_panel, render_panel, render_prompt_frame
 from .prompt import FileReferenceCompleter, PromptArea, prompt_user
 from .thinking import (
     DEFAULT_MAX_LENGTH,
@@ -21,5 +21,6 @@ __all__ = [
     "get_panel",
     "prompt_user",
     "render_panel",
+        "render_prompt_frame",
     "render_thinking",
 ]

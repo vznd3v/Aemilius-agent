@@ -59,15 +59,17 @@ class TestGateway(unittest.TestCase):
 
     def test_system_prompt_describes_readfile(self):
         self.assertIn("readfile reads and returns the content", SYSTEM_PROMPT)
+        self.assertIn("MUST inspect the project first", SYSTEM_PROMPT)
+        self.assertIn("Never invent source code", SYSTEM_PROMPT)
 
     @patch.object(
         gateway_module.ollama,
         "chat",
         return_value=_ollama_message("Bonjour !"),
     )
-    def test_no_tools_for_greeting(self, mock_chat):
+    def test_tools_are_available_for_greeting_without_forcing_tool_use(self, mock_chat):
         self.gw.generate_text("bonjour ?")
-        self.assertNotIn("tools", mock_chat.call_args.kwargs)
+        self.assertIn("tools", mock_chat.call_args.kwargs)
 
     @patch.object(
         gateway_module.ollama,
@@ -208,6 +210,7 @@ class TestStream(unittest.TestCase):
     def test_stream_content(self, mock_chat):
         chunks = list(self.gw.stream_text("Hi"))
         self.assertEqual(chunks, [
+            StreamChunk("status", "Thinking"),
             StreamChunk("content", "Hel"),
             StreamChunk("content", "lo there"),
         ])
@@ -223,6 +226,7 @@ class TestStream(unittest.TestCase):
     def test_stream_thinking_and_content(self, mock_chat):
         chunks = list(self.gw.stream_text("Why?"))
         self.assertEqual(chunks, [
+            StreamChunk("status", "Thinking"),
             StreamChunk("thinking", "I think"),
             StreamChunk("content", "Answer"),
         ])
@@ -286,7 +290,7 @@ class TestStream(unittest.TestCase):
 
         chunks = list(self.gw.stream_text("Hi"))
 
-        self.assertEqual(chunks, [StreamChunk(
+        self.assertEqual(chunks, [StreamChunk("status", "Thinking"), StreamChunk(
             "error",
             "Le fournisseur IA est temporairement saturé (429). Réessayez dans quelques secondes.",
         )])
@@ -308,6 +312,7 @@ class TestStream(unittest.TestCase):
                 chunks = list(self.gw.stream_text("List the files"))
 
         types = [chunk.type for chunk in chunks]
+        self.assertIn("tool_call", types)
         self.assertIn("tool_result", types)
         self.assertEqual(chunks[-1], StreamChunk("content", "Here is the list."))
         self.assertEqual(mock_chat.call_count, 2)
