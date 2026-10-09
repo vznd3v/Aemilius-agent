@@ -1,3 +1,7 @@
+# Project notes
+
+**Vision**: Aemilius Agent is a customizable agent base with a simple, separated architecture (CLI / Gateway / Tools / Config). The codebase-exploration tools shipped today are the default example setup — the goal is to make each layer easy to replace or extend.
+
 ## completed
 
 - [x] coding the base of the cli interface and test the history and the call to ollama

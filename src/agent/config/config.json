@@ -1,10 +1,10 @@
 {
-    "default_provider": "local_ollama",
+    "default_provider": "external_api_openai_compatible",
 
     "provider": {
         "external_api_openai_compatible":{
-            "base_url": "https://openrouter.ai/api/v1",
-            "model": "poolside/laguna-xs-2.1:free"
+            "base_url": "https://integrate.api.nvidia.com/v1/chat/completions",
+            "model": "moonshotai/kimi-k3"
         },
         "local_ollama": {
             "model": "qwen3:4b"
